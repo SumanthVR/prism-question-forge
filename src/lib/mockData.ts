@@ -1,5 +1,5 @@
 
-import { Framework, Question } from "./types";
+import { Framework, Question, ApiQuestion } from "./types";
 
 export const mockFrameworks: Framework[] = [
   { id: "f1", name: "IFC Listed Companies", questionCount: 42 },
@@ -26,45 +26,122 @@ export const generateMockQuestions = (count: number, frameworks: string[]): Ques
   }
   
   const questions: Question[] = [];
+  const apiQuestions = simulateApiResponse(count, frameworks);
   
-  for (let i = 0; i < count; i++) {
-    // Select two random frameworks from the selected ones
-    const selectedFrameworkIndices = getTwoRandomIndices(frameworks.length);
-    const framework1 = frameworks[selectedFrameworkIndices[0]];
-    const framework2 = frameworks[selectedFrameworkIndices[1]];
+  // Convert API response format to our internal format
+  apiQuestions.forEach((apiQuestion, index) => {
+    // We need to have at least two frameworks to merge questions
+    const framework1 = apiQuestion.framework;
+    const framework2 = frameworks.find(f => f !== framework1) || frameworks[0];
     
-    const originalQuestion1 = getQuestionForFramework(framework1);
-    const originalQuestion2 = getQuestionForFramework(framework2);
-    
-    // Generate merged question
-    const mergedQuestion = mergeQuestions(originalQuestion1, originalQuestion2);
+    // Extract emoji from the text if present
+    let emoji = "";
+    const emojiMatch = apiQuestion.text.match(/^(\s*[\u{1F300}-\u{1FAD6}])/u);
+    if (emojiMatch) {
+      emoji = emojiMatch[0].trim();
+    } else {
+      emoji = emojis[Math.floor(Math.random() * emojis.length)];
+    }
     
     questions.push({
-      id: `q${i + 1}`,
-      text: mergedQuestion,
+      id: `q${index + 1}`,
+      text: apiQuestion.text,
       frameworks: [framework1, framework2],
       originalQuestions: [
-        { text: originalQuestion1, framework: framework1 },
-        { text: originalQuestion2, framework: framework2 }
+        { 
+          text: apiQuestion.originalText, 
+          framework: framework1,
+          category: apiQuestion.category,
+          ref: apiQuestion.ref
+        },
+        { 
+          text: getQuestionForFramework(framework2), 
+          framework: framework2 
+        }
       ],
-      emoji: emojis[Math.floor(Math.random() * emojis.length)]
+      emoji: emoji,
+      category: apiQuestion.category,
+      ref: apiQuestion.ref
     });
-  }
+  });
   
   return questions;
 };
 
-// Get two random indices from an array length
-const getTwoRandomIndices = (max: number): [number, number] => {
-  const first = Math.floor(Math.random() * max);
-  let second = Math.floor(Math.random() * max);
+// Simulate the API response from your server
+function simulateApiResponse(count: number, frameworks: string[]): ApiQuestion[] {
+  const questions: ApiQuestion[] = [];
   
-  // Ensure second is different from first
-  while (second === first && max > 1) {
-    second = Math.floor(Math.random() * max);
+  // If no frameworks are selected, return empty array
+  if (frameworks.length < 2) {
+    return questions;
   }
   
-  return [first, second];
+  // Strategic questions templates that simulate the server's advanced generation
+  const strategicTemplates = [
+    "🧠 Strategic Depth: How has your organization fundamentally rethought its approach to {topic} to create sustainable competitive differentiation?",
+    "📊 Impact Intelligence: How have you evolved your {topic} measurement from isolated metrics to an integrated intelligence system?",
+    "🌐 Systemic Integration: How have you embedded {topic} so deeply into your organizational DNA that it shapes every strategic decision?",
+    "📈 Value Creation: How have you transformed your approach to {topic} from a compliance exercise to a value creation engine?",
+    "🔄 Dynamic Adaptation: What innovative governance structures have you developed to make decisions about {topic} with the agility required today?",
+    "🛡️ Beyond Compliance: How have you transformed your approach to {topic} from regulatory compliance into a source of competitive advantage?"
+  ];
+  
+  for (let i = 0; i < count; i++) {
+    // Select a random framework from the provided list
+    const randomFrameworkIndex = Math.floor(Math.random() * frameworks.length);
+    const framework = frameworks[randomFrameworkIndex];
+    
+    // Generate a question for the framework
+    const originalQuestion = getQuestionForFramework(framework);
+    const topic = extractTopic(originalQuestion);
+    
+    // Select a random template and replace {topic}
+    const template = strategicTemplates[Math.floor(Math.random() * strategicTemplates.length)];
+    const generatedQuestion = template.replace("{topic}", topic);
+    
+    questions.push({
+      text: generatedQuestion,
+      originalText: originalQuestion,
+      framework: framework,
+      category: getCategoryForFramework(framework),
+      ref: `${framework}-${i+1}`,
+      generated: true,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  return questions;
+}
+
+// Extract a topic from the question (simplified version of your server's logic)
+function extractTopic(question: string): string {
+  // Remove common question prefixes
+  let cleanedText = question.toLowerCase()
+    .replace(/does the entity|does the company|has the entity|has your company|is your company|the entity|your company/g, '')
+    .replace(/\?.*$/, '')
+    .replace(/;$/, '')
+    .replace(/^\s*(have|has|is|are|does|did|will|would|can|could|should|must)\s+/, '')
+    .trim();
+  
+  // If the cleaned text is too short, return a simplified version
+  if (cleanedText.length < 10) {
+    return "sustainability reporting";
+  }
+  
+  return cleanedText;
+}
+
+// Get a random question for a framework
+const getQuestionForFramework = (framework: string): string => {
+  const questions = frameworkQuestions[framework] || ["How does your organization approach sustainability?"];
+  return questions[Math.floor(Math.random() * questions.length)];
+};
+
+// Get a random category for a framework
+const getCategoryForFramework = (framework: string): string => {
+  const categories = ["Governance", "Environmental", "Social", "Strategy", "Disclosure", "Implementation"];
+  return categories[Math.floor(Math.random() * categories.length)];
 };
 
 // Template questions for each framework
@@ -129,28 +206,4 @@ const frameworkQuestions: Record<string, string[]> = {
     "What is your value creation process?",
     "How do you integrate financial and non-financial information?"
   ]
-};
-
-// Get a random question for a framework
-const getQuestionForFramework = (framework: string): string => {
-  const questions = frameworkQuestions[framework] || ["How does your organization approach sustainability?"];
-  return questions[Math.floor(Math.random() * questions.length)];
-};
-
-// Merge two questions into a new enhanced question
-const mergeQuestions = (q1: string, q2: string): string => {
-  const enhancedQuestions = [
-    `${randomEmoji()} How has your organization integrated approaches to both "${q1.replace(/\?$/, "")}" and "${q2.replace(/\?$/, "")}" in a holistic management system?`,
-    `${randomEmoji()} Beyond conventional practices, what innovative strategies have you developed to address both "${q1.replace(/\?$/, "")}" and "${q2.replace(/\?$/, "")}"?`,
-    `${randomEmoji()} What transformative policies has your organization implemented that simultaneously address "${q1.replace(/\?$/, "")}" and "${q2.replace(/\?$/, "")}"?`,
-    `${randomEmoji()} How does your leadership team ensure alignment between practices for "${q1.replace(/\?$/, "")}" and "${q2.replace(/\?$/, "")}"?`,
-    `${randomEmoji()} What metrics and KPIs have you developed to track performance on both "${q1.replace(/\?$/, "")}" and "${q2.replace(/\?$/, "")}"?`
-  ];
-  
-  return enhancedQuestions[Math.floor(Math.random() * enhancedQuestions.length)];
-};
-
-// Get a random emoji for prefixing questions
-const randomEmoji = (): string => {
-  return emojis[Math.floor(Math.random() * emojis.length)];
 };

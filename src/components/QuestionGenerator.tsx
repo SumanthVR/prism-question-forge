@@ -71,6 +71,12 @@ export default function QuestionGenerator({
           "Generate Questions"
         )}
       </Button>
+
+      {selectedFrameworks.size < 2 && (
+        <div className="mt-3 text-sm text-orange-600">
+          Please select at least two frameworks to enable question generation.
+        </div>
+      )}
     </Card>
   );
 }

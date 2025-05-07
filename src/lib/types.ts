@@ -3,11 +3,14 @@ export interface Framework {
   id: string;
   name: string;
   questionCount: number;
+  description?: string;
 }
 
 export interface OriginalQuestion {
   text: string;
   framework: string;
+  category?: string;
+  ref?: string;
 }
 
 export interface Question {
@@ -16,6 +19,9 @@ export interface Question {
   frameworks: string[];
   originalQuestions: OriginalQuestion[];
   emoji?: string;
+  category?: string;
+  ref?: string;
+  timestamp?: string;
 }
 
 export interface GenerateQuestionsRequest {
@@ -25,4 +31,14 @@ export interface GenerateQuestionsRequest {
 
 export interface GenerateQuestionsResponse {
   questions: Question[];
+}
+
+export interface ApiQuestion {
+  text: string;
+  originalText: string;
+  framework: string;
+  category?: string;
+  ref?: string;
+  generated?: boolean;
+  timestamp?: string;
 }

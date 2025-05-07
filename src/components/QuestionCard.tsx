@@ -44,6 +44,12 @@ export default function QuestionCard({ question }: QuestionCardProps) {
             </Badge>
           ))}
         </div>
+        
+        {question.category && (
+          <div className="text-xs text-gray-500 mb-2">
+            Category: {question.category}
+          </div>
+        )}
       </div>
       
       <div className="space-y-2 text-sm text-gray-600 border-t pt-3">
@@ -54,6 +60,16 @@ export default function QuestionCard({ question }: QuestionCardProps) {
             </div>
             <div className="text-gray-700 bg-gray-50 p-2 rounded-md">
               "{original.text}"
+              {original.category && (
+                <div className="text-xs text-gray-500 mt-1">
+                  Category: {original.category}
+                </div>
+              )}
+              {original.ref && (
+                <div className="text-xs text-gray-500 mt-1">
+                  Reference: {original.ref}
+                </div>
+              )}
             </div>
           </div>
         ))}
